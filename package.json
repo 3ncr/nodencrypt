@@ -1,0 +1,25 @@
+{
+  "name": "nodencrypt",
+  "version": "0.9.0",
+  "description": "3ncr.org node.js implementation",
+  "main": "dist/nodencrypt.js",
+  "types": "dist/nodencrypt.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node test/nodencrypt.test.ts", 
+    "prepublish": "npm test"
+  },
+  "keywords": [
+    "encrypt",
+    "decrypt",
+    "token",
+    "crypto"
+  ],
+  "author": "3ncr.org",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^13.7.0",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
+  }
+}
