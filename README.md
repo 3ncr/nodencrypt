@@ -8,9 +8,9 @@ encryption tokens in configuration files.
     header + base64(iv + data + tag) 
 ```
 
-Encrypted data looks like this `3ncr.org/1#pHRufQld0SajqjHx+FmLMcORfNQi1d674ziOPpG52hqW5+0zfJD91hjXsBsvULVtB017mEghGy3Ohj+GgQY5MQ`
+Encrypted data looks like this `3ncr.org/1#I09Dwt6q05ZrH8GQ0cp+g9Jm0hD0BmCwEdylCh8`
 
-This is a node.js implementation.
+This is an official node.js implementation.
 
 ## Usage
 
@@ -35,7 +35,7 @@ After you created the class instance, you can just use encrypt3ncr and decrypt3n
 const token = '08019215-B205-4416-B2FB-132962F9952F'; // your secret you want to encrypt 
 const encryptedSecretToken = nodenCrypt.encrypt3ncr(token);
 // now encryptedSecretToken === 
-// '3ncr.org/1#pHRufQld0SajqjHx+FmLMcORfNQi1d674ziOPpG52hqW5+0zfJD91hjXsBsvULVtB017mEghGy3Ohj+GgQY5MQ'
+// '3ncr.org/1#pHRufQld0SajqjH...' (encrypted)
 
 // ... some time later in another context ...  
 

@@ -1,2 +1,5 @@
 test/
 README.md 
+src
+.travis.yml
+
