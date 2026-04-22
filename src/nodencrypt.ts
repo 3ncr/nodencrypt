@@ -45,9 +45,9 @@ export class NodenCrypt {
 			return false
 		}
 
-		const iv = decdata.slice(0, nonceSizeV1)
-		const data = decdata.slice(nonceSizeV1, decdata.length - tagSizeV1)
-		const tag = decdata.slice(decdata.length - tagSizeV1)
+		const iv = decdata.subarray(0, nonceSizeV1)
+		const data = decdata.subarray(nonceSizeV1, decdata.length - tagSizeV1)
+		const tag = decdata.subarray(decdata.length - tagSizeV1)
 
         const decipher = crypto.createDecipheriv('aes-256-gcm', this.key, iv);
 		decipher.setAuthTag(tag);
@@ -62,7 +62,7 @@ export class NodenCrypt {
 
 	public decryptIf3ncr(src: string): string|false {
 		if (src.startsWith(headerV1)) {
-			return this.decrypt(src.substr(headerV1.length))
+			return this.decrypt(src.substring(headerV1.length))
 		}
 		return src;
 	}
