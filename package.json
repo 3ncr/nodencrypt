@@ -26,6 +26,8 @@
     "build:esm": "tsc -p tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json', JSON.stringify({type:'module'}))\"",
     "test": "tsx --test test/nodencrypt.test.ts && npm run test:dist",
     "test:dist": "npm run build && node test/smoke.cjs && node test/smoke.mjs",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome lint --write",
     "prepublish": "npm test"
   },
   "keywords": [
@@ -37,6 +39,7 @@
   "author": "3ncr.org",
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "2.4.12",
     "@types/node": "^22.19.17",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

@@ -1,6 +1,6 @@
 // Smoke test: consume the published CJS build via require().
 // Mirrors the entry path real CJS users will hit.
-const assert = require('assert');
+const assert = require('node:assert');
 const { NodenCrypt } = require('../dist/cjs/nodencrypt.js');
 
 const t = new NodenCrypt('a', 'b', 1000);

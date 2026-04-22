@@ -1,5 +1,5 @@
 
-import * as crypto from 'crypto'
+import * as crypto from 'node:crypto'
 import { argon2id as wasmArgon2id } from 'hash-wasm'
 
 const headerV1 = "3ncr.org/1#"
@@ -62,7 +62,7 @@ export class NodenCrypt {
 
 		try {
 			return decipher.update(data).toString('utf8') + decipher.final('utf8')
-		} catch (e) {
+		} catch {
 			return false
 		}
 

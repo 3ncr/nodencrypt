@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test'
 import * as assert from 'node:assert/strict'
-import * as crypto from 'crypto'
+import * as crypto from 'node:crypto'
 import { NodenCrypt } from '../src/nodencrypt'
 
 const testVectors = new Map<string, string>(Object.entries({
