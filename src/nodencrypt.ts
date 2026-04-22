@@ -44,7 +44,7 @@ export class NodenCrypt {
 		const encrypted = Buffer.concat([cipher.update(src, 'utf8'), cipher.final()]);
 		const tag = cipher.getAuthTag();
 
-        return headerV1 + Buffer.concat([iv, encrypted, tag]).toString('base64');
+        return headerV1 + Buffer.concat([iv, encrypted, tag]).toString('base64').replace(/=+$/, '');
 	}
 
 	private decrypt(b64data: string): string|false {

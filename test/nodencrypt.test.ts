@@ -32,6 +32,34 @@ describe('legacy PBKDF2 constructor', () => {
     })
 })
 
+describe('base64 padding', () => {
+    const t = new NodenCrypt('a', 'b', 1000)
+
+    // Cover all four IV-length residues mod 3 so any padding is exercised:
+    // total byte length = 12 (iv) + N (ciphertext) + 16 (tag).
+    for (const plaintext of ['a', 'ab', 'abc', 'abcd', 'a longer string for padding coverage']) {
+        test(`encrypted output has no '=' padding for "${plaintext}"`, () => {
+            const encrypted = t.encrypt3ncr(plaintext)
+            assert.ok(!encrypted.includes('='), `expected no padding, got ${encrypted}`)
+        })
+    }
+
+    test('decrypts canonical (unpadded) vectors', () => {
+        for (const [encrypted, plaintext] of testVectors) {
+            assert.equal(t.decryptIf3ncr(encrypted), plaintext)
+        }
+    })
+
+    test('decrypts the same payload with padding added', () => {
+        for (const [encrypted, plaintext] of testVectors) {
+            const body = encrypted.substring('3ncr.org/1#'.length)
+            const padLen = (4 - (body.length % 4)) % 4
+            const padded = '3ncr.org/1#' + body + '='.repeat(padLen)
+            assert.equal(t.decryptIf3ncr(padded), plaintext)
+        }
+    })
+})
+
 describe('raw-key constructor', () => {
     const rawKey = crypto.pbkdf2Sync('a', 'b', 1000, 32, 'sha3-256')
     const tRaw = new NodenCrypt(rawKey)
