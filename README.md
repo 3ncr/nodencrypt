@@ -14,6 +14,17 @@ This is an official node.js implementation.
 
 ## Usage
 
+The package ships dual builds and works from both CommonJS (`require`) and ES
+modules (`import`):
+
+```js
+// CommonJS
+const { NodenCrypt } = require('nodencrypt');
+
+// ES modules
+import { NodenCrypt } from 'nodencrypt';
+```
+
 ### Recommended: raw 32-byte key
 
 Pass a `Buffer` containing a 32-byte AES-256 key. Derive it however you prefer — for
