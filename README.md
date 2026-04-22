@@ -1,21 +1,29 @@
 # nodencrypt (3ncr.org)
 
-3ncr.org is a standard for string encryption/decryption (algorithms + storage format). Originally it was intended for 
-encryption tokens in configuration files.  
+[![Lint & Test](https://github.com/3ncr/nodencrypt/actions/workflows/test.yml/badge.svg)](https://github.com/3ncr/nodencrypt/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/nodencrypt.svg)](https://www.npmjs.com/package/nodencrypt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-3ncr.org v1 uses modern cryptographic primitives (SHA3-256, AES-256-GCM) and is fairly simple: 
-```    
-    header + base64(iv + data + tag) 
+[3ncr.org](https://3ncr.org/) is a standard for string encryption / decryption
+(algorithms + storage format), originally intended for encrypting tokens in
+configuration files but usable for any UTF-8 string. v1 uses AES-256-GCM for
+authenticated encryption with a 12-byte random IV:
+
+```
+3ncr.org/1#<base64(iv[12] || ciphertext || tag[16])>
 ```
 
-Encrypted data looks like this `3ncr.org/1#I09Dwt6q05ZrH8GQ0cp+g9Jm0hD0BmCwEdylCh8`
+Encrypted values look like
+`3ncr.org/1#pHRufQld0SajqjHx+FmLMcORfNQi1d674ziOPpG52hqW5+0zfJD91hjXsBsvULVtB017mEghGy3Ohj+GgQY5MQ`.
 
-This is an official node.js implementation.
+This is the official Node.js implementation. The package ships a dual CJS + ESM
+build and works from both `require` and `import`.
 
-## Usage
+## Install
 
-The package ships dual builds and works from both CommonJS (`require`) and ES
-modules (`import`):
+```bash
+npm install nodencrypt
+```
 
 ```js
 // CommonJS
@@ -25,27 +33,32 @@ const { NodenCrypt } = require('nodencrypt');
 import { NodenCrypt } from 'nodencrypt';
 ```
 
-### Recommended: raw 32-byte key
+## Usage
 
-Pass a `Buffer` containing a 32-byte AES-256 key. Derive it however you prefer — for
-passwords use Argon2id; for high-entropy inputs (random keys, API tokens) a single
-SHA3-256 hash is sufficient.
+Pick a constructor based on the entropy of your secret — see the
+[3ncr.org v1 KDF guidance](https://3ncr.org/1/#kdf) for the canonical
+recommendation.
+
+### Recommended: raw 32-byte key (high-entropy secrets)
+
+If you already have a 32-byte AES-256 key (random key, API token hashed to 32
+bytes via SHA3-256, etc.), skip the KDF and pass it directly as a `Buffer`.
 
 ```js
 const { NodenCrypt } = require('nodencrypt');
 const crypto = require('crypto');
 
-const key = crypto.randomBytes(32);            // or: load from env / secret store
+const key = crypto.randomBytes(32); // or: load from env / secret store
 const nodenCrypt = new NodenCrypt(key);
 ```
 
-### Password-based: Argon2id convenience factory
+### Recommended: Argon2id (passwords / low-entropy secrets)
 
-For low-entropy secrets (passwords, passphrases) use the async `fromArgon2id`
-factory. It derives the 32-byte AES key with the parameters specified by the
-[3ncr.org spec](https://3ncr.org/1/#kdf): memory 19456 KiB, iterations 2,
-parallelism 1. Salt must be at least 16 bytes and should be stored alongside
-the ciphertext (or otherwise managed by the application).
+For passwords or passphrases, use the async `fromArgon2id` factory. It derives
+the 32-byte AES key with the parameters specified by the
+[3ncr.org v1 spec](https://3ncr.org/1/#kdf): `m=19456 KiB, t=2, p=1`. The salt
+must be at least 16 bytes and should be stored alongside the ciphertext (or
+otherwise managed by the application).
 
 ```js
 const { NodenCrypt } = require('nodencrypt');
@@ -55,38 +68,40 @@ const salt = crypto.randomBytes(16);
 const nodenCrypt = await NodenCrypt.fromArgon2id('my password', salt);
 ```
 
-### Legacy: PBKDF2-SHA3 constructor
+### Legacy: PBKDF2-SHA3 (existing data only)
 
 The original `(secret, salt, iterations)` constructor is kept for backward
-compatibility with data encrypted by earlier versions. It is deprecated — prefer the
-raw-key constructor above for new code.
+compatibility with data encrypted by earlier versions. It is deprecated —
+prefer the raw-key or Argon2id constructor above for new code.
 
 ```js
 const nodenCrypt = new NodenCrypt(secret, salt, 1000);
 ```
 
-`secret` and `salt` are inputs to PBKDF2-SHA3 (one of them is key, the other is salt,
-but you need to store them both somewhere, preferably in different places).
-
-You can store them in any preferred places: environment variables, files, shared
-memory, derived from serial numbers or MAC. Be creative.
-
-`1000` is the number of PBKDF2 rounds. Higher is slower and more resistant to
-brute-force. If you are sure your secrets are long and random, a low value is fine.
+`secret` and `salt` are inputs to PBKDF2-SHA3 (technically one is the key, the
+other is the salt, but you need to store them both somewhere, preferably in
+different places).
 
 ### Encrypt / decrypt
 
-After you created the class instance, you can use `encrypt3ncr` and `decryptIf3ncr`
-(they accept and return strings):
+After constructing an instance, use `encrypt3ncr` and `decryptIf3ncr` (they
+accept and return strings):
 
 ```js
-const token = '08019215-B205-4416-B2FB-132962F9952F'; // your secret you want to encrypt 
+const token = '08019215-B205-4416-B2FB-132962F9952F'; // your secret you want to encrypt
 const encryptedSecretToken = nodenCrypt.encrypt3ncr(token);
-// now encryptedSecretToken === 
-// '3ncr.org/1#pHRufQld0SajqjH...' (encrypted)
+// encryptedSecretToken === '3ncr.org/1#pHRufQld0SajqjH...' (encrypted)
 
-// ... some time later in another context ...  
+// ... some time later in another context ...
 
-const decryptedSecretToken = nodenCrypt.decryptIf3ncr(encryptedSecretToken); 
-// now decryptedSecretToken === '08019215-B205-4416-B2FB-132962F9952F';
+const decryptedSecretToken = nodenCrypt.decryptIf3ncr(encryptedSecretToken);
+// decryptedSecretToken === '08019215-B205-4416-B2FB-132962F9952F'
 ```
+
+`decryptIf3ncr` returns the input unchanged when it does not start with the
+`3ncr.org/1#` header, so it is safe to route every configuration value through
+it regardless of whether it was encrypted.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
