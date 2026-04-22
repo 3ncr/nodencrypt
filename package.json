@@ -2,11 +2,30 @@
   "name": "nodencrypt",
   "version": "0.9.0",
   "description": "3ncr.org node.js implementation",
-  "main": "dist/nodencrypt.js",
-  "types": "dist/nodencrypt.d.ts",
+  "main": "dist/cjs/nodencrypt.js",
+  "module": "dist/esm/nodencrypt.js",
+  "types": "dist/cjs/nodencrypt.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/nodencrypt.d.ts",
+        "default": "./dist/esm/nodencrypt.js"
+      },
+      "require": {
+        "types": "./dist/cjs/nodencrypt.d.ts",
+        "default": "./dist/cjs/nodencrypt.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
-    "test": "tsx --test test/nodencrypt.test.ts",
+    "build": "npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "build:esm": "tsc -p tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json', JSON.stringify({type:'module'}))\"",
+    "test": "tsx --test test/nodencrypt.test.ts && npm run test:dist",
+    "test:dist": "npm run build && node test/smoke.cjs && node test/smoke.mjs",
     "prepublish": "npm test"
   },
   "keywords": [
