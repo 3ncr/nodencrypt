@@ -1,93 +1,89 @@
-
-import {NodenCrypt} from '../src/nodencrypt'
-import * as assert from 'assert'
+import { describe, test } from 'node:test'
+import * as assert from 'node:assert/strict'
 import * as crypto from 'crypto'
-
-const t = new NodenCrypt('a', 'b', 1000);
+import { NodenCrypt } from '../src/nodencrypt'
 
 const testVectors = new Map<string, string>(Object.entries({
     '3ncr.org/1#I09Dwt6q05ZrH8GQ0cp+g9Jm0hD0BmCwEdylCh8': 'a',
     '3ncr.org/1#Y3/v2PY7kYQgveAn4AJ8zP+oOuysbs5btYLZ9vl8DLc': 'test',
     '3ncr.org/1#pHRufQld0SajqjHx+FmLMcORfNQi1d674ziOPpG52hqW5+0zfJD91hjXsBsvULVtB017mEghGy3Ohj+GgQY5MQ':
-    '08019215-B205-4416-B2FB-132962F9952F',
-    '3ncr.org/1#EPw7S5+BG6hn/9Sjf6zoYUCdwlzweeB+ahBIabUD6NogAcevXszOGHz9Jzv4vQ': 'перевірка'
+        '08019215-B205-4416-B2FB-132962F9952F',
+    '3ncr.org/1#EPw7S5+BG6hn/9Sjf6zoYUCdwlzweeB+ahBIabUD6NogAcevXszOGHz9Jzv4vQ': 'перевірка',
 }))
 
-// test decrypt with legacy PBKDF2 constructor
+describe('legacy PBKDF2 constructor', () => {
+    const t = new NodenCrypt('a', 'b', 1000)
 
-testVectors.forEach((value, key) => {
-    assert.strictEqual(t.decryptIf3ncr(key), value)
-    console.log(`[OK] decrypt(${key}) === ${value}`)
+    for (const [encrypted, plaintext] of testVectors) {
+        test(`decrypts canonical vector for "${plaintext}"`, () => {
+            assert.equal(t.decryptIf3ncr(encrypted), plaintext)
+        })
+    }
+
+    for (const [, plaintext] of testVectors) {
+        test(`encrypt/decrypt round-trip for "${plaintext}"`, () => {
+            assert.equal(t.decryptIf3ncr(t.encrypt3ncr(plaintext)), plaintext)
+        })
+    }
+
+    test('validates arguments', () => {
+        assert.throws(() => new (NodenCrypt as any)('secret'), TypeError)
+        assert.throws(() => new (NodenCrypt as any)('secret', 'salt'), TypeError)
+    })
 })
 
-// test encrypt-decrypt with legacy PBKDF2 constructor
+describe('raw-key constructor', () => {
+    const rawKey = crypto.pbkdf2Sync('a', 'b', 1000, 32, 'sha3-256')
+    const tRaw = new NodenCrypt(rawKey)
 
-testVectors.forEach((value) => {
-    assert.strictEqual(value, t.decryptIf3ncr(t.encrypt3ncr(value)))
-    console.log(`[OK] decrypt(encrypt(${value})) === ${value} `)
+    for (const [encrypted, plaintext] of testVectors) {
+        test(`decrypts canonical vector for "${plaintext}"`, () => {
+            assert.equal(tRaw.decryptIf3ncr(encrypted), plaintext)
+        })
+    }
+
+    for (const [, plaintext] of testVectors) {
+        test(`encrypt/decrypt round-trip for "${plaintext}"`, () => {
+            assert.equal(tRaw.decryptIf3ncr(tRaw.encrypt3ncr(plaintext)), plaintext)
+        })
+    }
+
+    test('rejects wrong-sized keys', () => {
+        assert.throws(() => new NodenCrypt(Buffer.alloc(16)), /32 bytes/)
+        assert.throws(() => new NodenCrypt(Buffer.alloc(33)), /32 bytes/)
+    })
+
+    test('is interoperable with legacy PBKDF2 constructor', () => {
+        const t = new NodenCrypt('a', 'b', 1000)
+        for (const [, plaintext] of testVectors) {
+            assert.equal(tRaw.decryptIf3ncr(t.encrypt3ncr(plaintext)), plaintext)
+            assert.equal(t.decryptIf3ncr(tRaw.encrypt3ncr(plaintext)), plaintext)
+        }
+    })
 })
 
-// test raw-key constructor: same underlying key as ('a', 'b', 1000) must decrypt the same vectors
-
-const rawKey = crypto.pbkdf2Sync('a', 'b', 1000, 32, 'sha3-256')
-const tRaw = new NodenCrypt(rawKey)
-
-testVectors.forEach((value, key) => {
-    assert.strictEqual(tRaw.decryptIf3ncr(key), value)
-    console.log(`[OK] raw-key decrypt(${key}) === ${value}`)
-})
-
-testVectors.forEach((value) => {
-    assert.strictEqual(value, tRaw.decryptIf3ncr(tRaw.encrypt3ncr(value)))
-    console.log(`[OK] raw-key decrypt(encrypt(${value})) === ${value} `)
-})
-
-// cross-compatibility: raw-key instance decrypts what legacy instance encrypts, and vice versa
-testVectors.forEach((value) => {
-    assert.strictEqual(value, tRaw.decryptIf3ncr(t.encrypt3ncr(value)))
-    assert.strictEqual(value, t.decryptIf3ncr(tRaw.encrypt3ncr(value)))
-})
-console.log('[OK] raw-key and legacy PBKDF2 constructors are interoperable')
-
-// test raw-key constructor rejects wrong-sized keys
-assert.throws(() => new NodenCrypt(Buffer.alloc(16)), /32 bytes/)
-assert.throws(() => new NodenCrypt(Buffer.alloc(33)), /32 bytes/)
-console.log('[OK] raw-key constructor rejects wrong key sizes')
-
-// test legacy constructor still validates its arguments
-assert.throws(() => new (NodenCrypt as any)('secret'), TypeError)
-assert.throws(() => new (NodenCrypt as any)('secret', 'salt'), TypeError)
-console.log('[OK] legacy constructor validates arguments')
-
-// test Argon2id factory
-
-async function testArgon2id() {
+describe('fromArgon2id factory', () => {
     const salt = Buffer.from('0123456789abcdef', 'utf8')
 
-    // round-trip: encrypt with one instance, decrypt with a second instance created
-    // from the same secret + salt. Proves the KDF is deterministic for fixed params.
-    const inst = await NodenCrypt.fromArgon2id('password', salt)
-    const encrypted = inst.encrypt3ncr('hello 3ncr')
-    const inst2 = await NodenCrypt.fromArgon2id('password', salt)
-    assert.strictEqual(inst2.decryptIf3ncr(encrypted), 'hello 3ncr')
-    console.log('[OK] fromArgon2id round-trip')
+    test('round-trip with the same secret and salt', async () => {
+        const inst = await NodenCrypt.fromArgon2id('password', salt)
+        const encrypted = inst.encrypt3ncr('hello 3ncr')
+        const inst2 = await NodenCrypt.fromArgon2id('password', salt)
+        assert.equal(inst2.decryptIf3ncr(encrypted), 'hello 3ncr')
+    })
 
-    // a different password must NOT decrypt (authenticated GCM returns false on bad key)
-    const inst3 = await NodenCrypt.fromArgon2id('wrong', salt)
-    assert.strictEqual(inst3.decryptIf3ncr(encrypted), false)
-    console.log('[OK] fromArgon2id wrong password does not decrypt')
+    test('wrong password does not decrypt', async () => {
+        const inst = await NodenCrypt.fromArgon2id('password', salt)
+        const encrypted = inst.encrypt3ncr('hello 3ncr')
+        const inst3 = await NodenCrypt.fromArgon2id('wrong', salt)
+        assert.equal(inst3.decryptIf3ncr(encrypted), false)
+    })
 
-    // salt shorter than 16 bytes must throw
-    const shortSalt = Buffer.alloc(15)
-    await assert.rejects(() => NodenCrypt.fromArgon2id('password', shortSalt), /at least 16 bytes/)
-    console.log('[OK] fromArgon2id rejects salt shorter than 16 bytes')
+    test('rejects salt shorter than 16 bytes', async () => {
+        await assert.rejects(() => NodenCrypt.fromArgon2id('password', Buffer.alloc(15)), /at least 16 bytes/)
+    })
 
-    // non-Buffer salt must throw
-    await assert.rejects(() => NodenCrypt.fromArgon2id('password', 'notabuffer' as any), TypeError)
-    console.log('[OK] fromArgon2id rejects non-Buffer salt')
-}
-
-testArgon2id().catch((err) => {
-    console.error(err)
-    process.exit(1)
+    test('rejects non-Buffer salt', async () => {
+        await assert.rejects(() => NodenCrypt.fromArgon2id('password', 'notabuffer' as any), TypeError)
+    })
 })
