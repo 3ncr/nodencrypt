@@ -1,10 +1,18 @@
 
 import * as crypto from 'crypto'
+import { argon2id as wasmArgon2id } from 'hash-wasm'
 
 const headerV1 = "3ncr.org/1#"
 const aes256KeySize = 32
 const nonceSizeV1 = 12
 const tagSizeV1 = 16
+
+// 3ncr.org recommended Argon2id parameters for interoperability
+// (see https://3ncr.org/1/ — Key Derivation section).
+const argon2idMemoryCostKiB = 19456
+const argon2idTimeCost = 2
+const argon2idParallelism = 1
+const argon2idMinSaltBytes = 16
 
 export class NodenCrypt {
 
@@ -65,6 +73,31 @@ export class NodenCrypt {
 			return this.decrypt(src.substring(headerV1.length))
 		}
 		return src;
+	}
+
+	/**
+	 * Create a NodenCrypt using the 3ncr.org recommended Argon2id KDF for
+	 * low-entropy secrets (passwords, passphrases). Parameters follow the spec
+	 * (https://3ncr.org/1/ — Key Derivation): memory 19456 KiB, iterations 2,
+	 * parallelism 1, output 32 bytes, salt at least 16 bytes.
+	 */
+	public static async fromArgon2id(secret: string | Buffer, salt: Buffer): Promise<NodenCrypt> {
+		if (!Buffer.isBuffer(salt)) {
+			throw new TypeError('fromArgon2id: salt must be a Buffer')
+		}
+		if (salt.length < argon2idMinSaltBytes) {
+			throw new RangeError(`fromArgon2id: salt must be at least ${argon2idMinSaltBytes} bytes (got ${salt.length})`)
+		}
+		const key = await wasmArgon2id({
+			password: secret,
+			salt,
+			iterations: argon2idTimeCost,
+			parallelism: argon2idParallelism,
+			memorySize: argon2idMemoryCostKiB,
+			hashLength: aes256KeySize,
+			outputType: 'binary',
+		})
+		return new NodenCrypt(Buffer.from(key))
 	}
 
 }
