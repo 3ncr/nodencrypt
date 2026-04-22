@@ -53,7 +53,7 @@ export class NodenCrypt {
 		decipher.setAuthTag(tag);
 
 		try {
-			return decipher.update(data, 'binary', 'utf8') + decipher.final('utf8')
+			return decipher.update(data).toString('utf8') + decipher.final('utf8')
 		} catch (e) {
 			return false
 		}
