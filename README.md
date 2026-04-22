@@ -28,6 +28,22 @@ const key = crypto.randomBytes(32);            // or: load from env / secret sto
 const nodenCrypt = new NodenCrypt(key);
 ```
 
+### Password-based: Argon2id convenience factory
+
+For low-entropy secrets (passwords, passphrases) use the async `fromArgon2id`
+factory. It derives the 32-byte AES key with the parameters specified by the
+[3ncr.org spec](https://3ncr.org/1/#kdf): memory 19456 KiB, iterations 2,
+parallelism 1. Salt must be at least 16 bytes and should be stored alongside
+the ciphertext (or otherwise managed by the application).
+
+```js
+const { NodenCrypt } = require('nodencrypt');
+const crypto = require('crypto');
+
+const salt = crypto.randomBytes(16);
+const nodenCrypt = await NodenCrypt.fromArgon2id('my password', salt);
+```
+
 ### Legacy: PBKDF2-SHA3 constructor
 
 The original `(secret, salt, iterations)` constructor is kept for backward
