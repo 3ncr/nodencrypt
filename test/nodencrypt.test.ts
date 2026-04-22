@@ -1,6 +1,7 @@
 
 import {NodenCrypt} from '../src/nodencrypt'
 import * as assert from 'assert'
+import * as crypto from 'crypto'
 
 const t = new NodenCrypt('a', 'b', 1000);
 
@@ -12,16 +13,48 @@ const testVectors = new Map<string, string>(Object.entries({
     '3ncr.org/1#EPw7S5+BG6hn/9Sjf6zoYUCdwlzweeB+ahBIabUD6NogAcevXszOGHz9Jzv4vQ': 'перевірка'
 }))
 
-// test decrypt 
+// test decrypt with legacy PBKDF2 constructor
 
 testVectors.forEach((value, key) => {
     assert.strictEqual(t.decryptIf3ncr(key), value)
     console.log(`[OK] decrypt(${key}) === ${value}`)
 })
 
-// test encrypt-decrypt
+// test encrypt-decrypt with legacy PBKDF2 constructor
 
 testVectors.forEach((value) => {
     assert.strictEqual(value, t.decryptIf3ncr(t.encrypt3ncr(value)))
     console.log(`[OK] decrypt(encrypt(${value})) === ${value} `)
 })
+
+// test raw-key constructor: same underlying key as ('a', 'b', 1000) must decrypt the same vectors
+
+const rawKey = crypto.pbkdf2Sync('a', 'b', 1000, 32, 'sha3-256')
+const tRaw = new NodenCrypt(rawKey)
+
+testVectors.forEach((value, key) => {
+    assert.strictEqual(tRaw.decryptIf3ncr(key), value)
+    console.log(`[OK] raw-key decrypt(${key}) === ${value}`)
+})
+
+testVectors.forEach((value) => {
+    assert.strictEqual(value, tRaw.decryptIf3ncr(tRaw.encrypt3ncr(value)))
+    console.log(`[OK] raw-key decrypt(encrypt(${value})) === ${value} `)
+})
+
+// cross-compatibility: raw-key instance decrypts what legacy instance encrypts, and vice versa
+testVectors.forEach((value) => {
+    assert.strictEqual(value, tRaw.decryptIf3ncr(t.encrypt3ncr(value)))
+    assert.strictEqual(value, t.decryptIf3ncr(tRaw.encrypt3ncr(value)))
+})
+console.log('[OK] raw-key and legacy PBKDF2 constructors are interoperable')
+
+// test raw-key constructor rejects wrong-sized keys
+assert.throws(() => new NodenCrypt(Buffer.alloc(16)), /32 bytes/)
+assert.throws(() => new NodenCrypt(Buffer.alloc(33)), /32 bytes/)
+console.log('[OK] raw-key constructor rejects wrong key sizes')
+
+// test legacy constructor still validates its arguments
+assert.throws(() => new (NodenCrypt as any)('secret'), TypeError)
+assert.throws(() => new (NodenCrypt as any)('secret', 'salt'), TypeError)
+console.log('[OK] legacy constructor validates arguments')
