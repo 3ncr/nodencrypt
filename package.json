@@ -1,6 +1,6 @@
 {
   "name": "nodencrypt",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "3ncr.org node.js implementation",
   "main": "dist/cjs/nodencrypt.js",
   "module": "dist/esm/nodencrypt.js",
