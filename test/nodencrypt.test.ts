@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test'
 import * as assert from 'node:assert/strict'
 import * as crypto from 'node:crypto'
-import { NodenCrypt } from '../src/nodencrypt'
+import { NodenCrypt } from '../src/nodencrypt.js'
 
 const testVectors = new Map<string, string>(Object.entries({
     '3ncr.org/1#I09Dwt6q05ZrH8GQ0cp+g9Jm0hD0BmCwEdylCh8': 'a',
