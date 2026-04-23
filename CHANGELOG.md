@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The `(secret, salt, iterations)` PBKDF2-SHA3 constructor is now documented as
   legacy; kept for backward compatibility with data encrypted by earlier
   versions. Prefer the raw-key or Argon2id constructor for new code.
-- TypeScript upgraded to 5.x; `@types/node` pinned to 22.x.
+- TypeScript upgraded to 6.x; `@types/node` updated to 25.x.
 - Test runner migrated to `tsx` + node's built-in `node:test`.
 
 ## [0.9.0] - 2020-02-06
