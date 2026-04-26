@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-04-26
+
+First stable release. Published to npm as `nodencrypt@1.0.0`.
+
 ### Added
 
 - `NodenCrypt.fromArgon2id(secret, salt)` — Argon2id KDF for password-strength
@@ -32,5 +36,6 @@ Initial public release on npm. Shipped the original PBKDF2-SHA3
 [3ncr.org v1 envelope](https://3ncr.org/1/) (AES-256-GCM, 12-byte random IV,
 16-byte GCM tag).
 
-[Unreleased]: https://github.com/3ncr/nodencrypt/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/3ncr/nodencrypt/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/3ncr/nodencrypt/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/3ncr/nodencrypt/releases/tag/v0.9.0
